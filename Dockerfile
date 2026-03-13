@@ -15,7 +15,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client before building
-RUN npx prisma generate
+RUN ./node_modules/.bin/prisma generate
 
 # Build-time env (no secrets, only shape)
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -45,10 +45,9 @@ COPY --from=builder /app/public            ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static     ./.next/static
 
-# Copy prisma for migrations at runtime
-COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# Copy prisma schema + full node_modules for migrations and seed at runtime
+COPY --from=builder /app/prisma       ./prisma
+COPY --from=builder /app/node_modules ./node_modules
 
 # Entrypoint script
 COPY --chown=nextjs:nodejs docker-entrypoint.sh ./docker-entrypoint.sh

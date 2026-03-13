@@ -2,10 +2,10 @@
 set -e
 
 echo "→ Running Prisma migrations..."
-npx prisma migrate deploy
+./node_modules/.bin/prisma migrate deploy
 
 echo "→ Running Prisma seed (idempotent)..."
-npx prisma db seed || echo "Seed skipped (already seeded or no changes)"
+./node_modules/.bin/prisma db seed || echo "Seed skipped (already seeded or no changes)"
 
 echo "→ Starting Next.js..."
 exec node server.js

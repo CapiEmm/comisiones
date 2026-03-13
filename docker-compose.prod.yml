@@ -36,21 +36,24 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-comisiones_db}
       AUTH_SECRET: ${AUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-${SERVICE_URL_APP}}
       NODE_ENV: production
     networks:
       - comisiones_net
-    # Coolify maneja el proxy/SSL; no exponemos el puerto directamente.
-    # Si lo desplegas sin Coolify proxy, descomenta:
-    # ports:
-    #   - "3000:3000"
+      - coolify
     labels:
-      # Etiquetas para Coolify / Traefik (Coolify las gestiona automáticamente)
       - "traefik.enable=true"
+      - "traefik.http.routers.comisiones-app.rule=Host(`${SERVICE_FQDN_APP}`)"
+      - "traefik.http.routers.comisiones-app.entrypoints=https"
+      - "traefik.http.routers.comisiones-app.tls=true"
+      - "traefik.http.routers.comisiones-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.comisiones-app.loadbalancer.server.port=3000"
 
 networks:
   comisiones_net:
     driver: bridge
+  coolify:
+    external: true
 
 volumes:
   postgres_data_prod:

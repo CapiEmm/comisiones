@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String             @id @default(cuid())
+  name              String?
+  email             String             @unique
+  password          String
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  sales             Sale[]
+  commissionFactors CommissionFactor[]
+
+  @@map("users")
+}
+
+model Sale {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  fecha              DateTime
+  cliente            String
+  producto           String
+  costo              Decimal  @db.Decimal(12, 2)
+  precioVenta        Decimal  @map("precio_venta") @db.Decimal(12, 2)
+  utilidad           Decimal  @db.Decimal(12, 2)
+  porcentajeUtilidad Decimal  @map("porcentaje_utilidad") @db.Decimal(8, 4)
+  factor             Decimal  @db.Decimal(8, 4)
+  comision           Decimal  @db.Decimal(12, 2)
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sales")
+}
+
+model CommissionFactor {
+  id         String  @id @default(cuid())
+  userId     String  @map("user_id")
+  porcentaje Int
+  factor     Decimal @db.Decimal(8, 4)
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, porcentaje])
+  @@map("commission_factors")
+}

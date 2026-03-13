@@ -1,0 +1,49 @@
+# ─── DESARROLLO LOCAL ─────────────────────────────────────────────────────────
+# Uso: docker compose up -d
+# La app corre con hot-reload montando el código fuente.
+# Las variables de entorno se toman de .env.local
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: comisiones_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-comisiones}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-comisiones_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-comisiones_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-comisiones} -d ${POSTGRES_DB:-comisiones_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder          # usa la stage builder para dev
+    container_name: comisiones_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-comisiones}:${POSTGRES_PASSWORD:-comisiones_pass}@db:5432/${POSTGRES_DB:-comisiones_db}
+      AUTH_SECRET: ${AUTH_SECRET:-dev-secret-change-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed; npm run dev"]
+
+volumes:
+  postgres_data:

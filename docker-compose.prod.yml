@@ -1,60 +1,35 @@
-# ─── PRODUCCIÓN / COOLIFY ─────────────────────────────────────────────────────
-# Este archivo es el que apunta Coolify.
-# En Coolify: New Service → Docker Compose → apunta a este archivo.
-# Configura las variables en el panel de Coolify (Environment Variables).
-
 services:
   db:
     image: postgres:16-alpine
-    container_name: comisiones_db_prod
-    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-comisiones_db}
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
-    networks:
-      - comisiones_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB:-comisiones_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
+    restart: always
 
   app:
-    image: ${APP_IMAGE:-comisiones-saas:latest}
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: comisiones_app_prod
-    restart: always
-    depends_on:
-      db:
-        condition: service_healthy
+    ports:
+      - "3000:3000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-comisiones_db}
       AUTH_SECRET: ${AUTH_SECRET}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-${SERVICE_URL_APP}}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
       NODE_ENV: production
-    networks:
-      - comisiones_net
-      - coolify
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.comisiones-app.rule=Host(`${SERVICE_FQDN_APP}`)"
-      - "traefik.http.routers.comisiones-app.entrypoints=https"
-      - "traefik.http.routers.comisiones-app.tls=true"
-      - "traefik.http.routers.comisiones-app.tls.certresolver=letsencrypt"
-      - "traefik.http.services.comisiones-app.loadbalancer.server.port=3000"
-
-networks:
-  comisiones_net:
-    driver: bridge
-  coolify:
-    external: true
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
 
 volumes:
   postgres_data_prod:
-    driver: local

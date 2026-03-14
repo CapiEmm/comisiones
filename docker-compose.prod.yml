@@ -30,6 +30,13 @@ services:
       db:
         condition: service_healthy
     restart: always
+    networks:
+      - default
+      - coolify
+
+networks:
+  coolify:
+    external: true
 
 volumes:
   postgres_data_prod:
